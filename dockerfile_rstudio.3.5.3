@@ -1,0 +1,63 @@
+FROM rocker/rstudio:3.5.3
+
+## instalar librerias
+RUN apt-get update -qq && apt-get -y --no-install-recommends install \
+libxml2-dev \
+libcairo2-dev \
+libsqlite3-dev \
+libmariadbd-dev \
+libpq-dev \
+libssh2-1-dev \
+unixodbc-dev \
+libcurl4-openssl-dev \
+libssl-dev \
+ libicu-dev \
+ libpq-dev \
+ libssl-dev \
+ gdebi-core \
+ libopenblas-base \
+ libclang-dev 
+
+# instalar otros
+RUN apt install -y \
+    tmux \
+    vim \
+    nano \
+    sudo \
+    curl \
+    openssh-server \
+    wget \
+    lsb-release \
+    ca-certificates
+
+# usuarios
+RUN useradd -ms /bin/bash username && \
+ usermod -aG sudo username && \
+ echo "username:clave" | chpasswd && \
+ usermod -u 1001 username && \
+ chown -R username:username /home/username/
+
+RUN mkdir -p /home/username/Documents/proyecto/
+RUN mkdir -p /home/username/Documents/proyecto/files/
+
+# proxys 
+RUN echo "export http_proxy=http://..."  >> /home/username/.bashrc && \
+    echo "export https_proxy=http://..."  >> /home/username/.bashrc && \
+    echo "export ftp_proxy=http://..."  >> /home/username/.bashrc && \
+    echo "export rsync_proxy=http://..."  >> /home/username/.bashrc && \
+    echo 'export no_proxy="localhost,..."   ' /home/username/.bashrc     
+
+# proxys R
+RUN echo "http_proxy=http://..."  >> /home/username/.Renviron && \
+    echo "https_proxy=http://..."  >> /home/username/.Renviron && \
+    echo "ftp_proxy=http://..."  >> /home/username/.Renviron && \
+    echo "rsync_proxy=http://..."  >> /home/username/.Renviron && \
+    echo 'no_proxy="localhost,..."   ' /home/username/.Renviron                    
+
+# instalar packages de r
+RUN R -e "install.packages('renv', repos = c(CRAN = 'https://cloud.r-project.org'))"
+COPY renv.lock renv.lock
+RUN R -e 'renv::restore()'
+   
+# instalar toolkit
+RUN R -e "install.packages('devtools', repos = c(CRAN = 'https://cloud.r-project.org'))"
